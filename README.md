@@ -1,16 +1,18 @@
 # s3lf
 
-An lf-style terminal browser for Amazon S3. Miller columns, vim-ish keys,
-read-only by default if you want it.
+An lf-style terminal browser for Amazon S3. Talks to the S3 API directly
+instead of mounting a filesystem
 
-```
-s3://my-bucket/logs/
-  2024-08/      ▸ access.log               1.2MB
-  2024-09/        error.log                  847B
-  archive/        debug.log                  4.5KB
-  index.json
-                                                                    [default]
-```
+![demo](docs/demo.gif)
+
+## Features
+
+- Browse buckets and prefixes with lazy pagination
+- Vim-style navigation and smartcase search
+- Download objects, view in `$PAGER`, edit in `$EDITOR`, or open with the system default
+- Conditional GET/PUT on edit using ETag `If-Match` to avoid clobbering changes
+- Read-only mode to prevent edits
+- Switch AWS profiles without restarting
 
 ## Install
 
@@ -61,25 +63,14 @@ Press `?` at any time for the in-app reference.
 `$EDITOR` and `$PAGER` are required for `e` and `v`. No defaults — the
 right fallback depends on the user.
 
-## Design notes
+## TODO
 
-- **One `ListObjectsV2(delimiter="/")` per pane**, behind an LRU + singleflight
-  cache (TTL 60s). Navigating back to a recent pane is instant.
-- **Pagination** is lazy: the first 1000 entries are fetched eagerly; more
-  pages are pulled when the cursor gets within 50 rows of the end.
-- **Conditional GET on edit**: the download uses `If-Match` against the
-  ETag from the prior `HEAD`. A 412 means the object changed; the TUI
-  asks you to retry rather than handing the editor stale bytes paired
-  with an out-of-date ETag.
-- **Conditional `PutObject` on save**: same ETag is reused as `If-Match`.
-  Conflict preserves the local temp file and reports its path.
-- **Per-profile cache**: switching profiles via `P` rebuilds the cache
-  and S3 client. No cross-account listing leakage.
+- File uploads from local disk
+- Authoring new files directly to S3 from within the TUI
 
 ## Build & test
 
 ```
 go build ./...
 go test ./...
-go test -race ./...
 ```
